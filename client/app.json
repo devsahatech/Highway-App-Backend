@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Highway",
+    "slug": "Highway",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.devsaha.highway"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/adaptive-icon.png"
+      },
+      "package": "com.devsaha.highway",
+      "googleServicesFile": "./google-services.json"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#D97706"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "afdc2a68-2a95-47aa-8a2f-d5118a8c5e1c"
+      }
+    }
+  }
+}
