@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "979596452557",
+    "project_id": "highway-679b3",
+    "storage_bucket": "highway-679b3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:979596452557:android:d48e724416239b43f93f84",
+        "android_client_info": {
+          "package_name": "com.devsaha.highway"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBUwi-y6W_23sd2xJt6cTkWoJ__2ra-DFw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
