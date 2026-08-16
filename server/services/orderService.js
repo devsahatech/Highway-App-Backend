@@ -9,7 +9,7 @@ const addDisplayId = (order) => {
 };
 
 const createOrder = async (orderData) => {
-  const { name, "phone no": phone, address, items, expo_push_token } = orderData;
+  const { name, "phone no": phone, address, items, expo_push_token, latitude, longitude } = orderData;
 
   if (!name || !phone || !address) {
     throw new Error("Customer name, phone no, and address are required");
@@ -46,6 +46,8 @@ const createOrder = async (orderData) => {
       total_amount: totalAmount,
       status: "Received",
       expo_push_token: expo_push_token || null,
+      latitude: latitude || null,
+      longitude: longitude || null,
     })
     .select()
     .single();

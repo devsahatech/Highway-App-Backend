@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import socket from '../services/socket';
 import { registerForPushNotificationsAsync } from '../services/pushNotifications';
+import * as Location from 'expo-location';
 
 const CATEGORIES = ['All', 'Biryani', 'Starters', 'Fast Food', 'Beverages & Refreshments'];
 
@@ -24,9 +25,28 @@ export default function MainScreen() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [tableAddress, setTableAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
   // Selected variants mapping (productId -> variant index)
   const [selectedVariants, setSelectedVariants] = useState({});
+
+  useEffect(() => {
+    const loadPrefillData = async () => {
+      try {
+        const savedName = await AsyncStorage.getItem('@customer_name');
+        const savedPhone = await AsyncStorage.getItem('@customer_phone');
+        const savedAddress = await AsyncStorage.getItem('@customer_address');
+        if (savedName) setCustomerName(savedName);
+        if (savedPhone) setCustomerPhone(savedPhone);
+        if (savedAddress) setTableAddress(savedAddress);
+      } catch (e) {
+        console.error('Failed to load prefill data');
+      }
+    };
+    loadPrefillData();
+  }, []);
 
   useEffect(() => {
     // Mocking specific products based on requirements
@@ -203,13 +223,40 @@ export default function MainScreen() {
     });
   };
 
+  const fetchLocation = async () => {
+    setIsFetchingLocation(true);
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Permission to access location was denied');
+        setIsFetchingLocation(false);
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      setLatitude(location.coords.latitude);
+      setLongitude(location.coords.longitude);
+      Alert.alert('Location Added', 'Your live location has been added to the order!');
+    } catch (error) {
+      Alert.alert('Error', 'Could not fetch location. Please ensure GPS is enabled.');
+    } finally {
+      setIsFetchingLocation(false);
+    }
+  };
+
   const placeOrder = async () => {
     if (Object.keys(cart).length === 0) {
       Alert.alert('Empty Cart', 'Please add items to your cart first.');
       return;
     }
     if (!customerName || !customerPhone || !tableAddress) {
-      Alert.alert('Missing Info', 'Please enter your Name, Phone, and Table/Address.');
+      Alert.alert('Missing Info', 'Please enter your Name, Phone, and Address.');
+      return;
+    }
+
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(customerPhone)) {
+      Alert.alert('Invalid Phone', 'Please enter a valid 10-digit Indian mobile number.');
       return;
     }
 
@@ -219,6 +266,8 @@ export default function MainScreen() {
       name: customerName,
       "phone no": customerPhone,
       address: tableAddress,
+      latitude: latitude,
+      longitude: longitude,
       items: Object.values(cart).map((item) => ({
         "item name": `${item.product.name} (${item.variant.name})`,
         "item quantity": item.quantity,
@@ -229,6 +278,11 @@ export default function MainScreen() {
     };
 
     try {
+      // Save data for next time
+      await AsyncStorage.setItem('@customer_name', customerName);
+      await AsyncStorage.setItem('@customer_phone', customerPhone);
+      await AsyncStorage.setItem('@customer_address', tableAddress);
+
       // Assuming the backend is hosted at EXPO_PUBLIC_API_URL or running locally
       const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
       
@@ -497,6 +551,17 @@ export default function MainScreen() {
                     value={tableAddress}
                     onChangeText={setTableAddress}
                   />
+
+                  <TouchableOpacity
+                    onPress={fetchLocation}
+                    disabled={isFetchingLocation}
+                    className="flex-row items-center justify-center bg-blue-50 border border-blue-200 rounded-xl py-3 mb-4"
+                  >
+                    <Ionicons name="location" size={20} color="#3B82F6" />
+                    <Text className="text-blue-600 font-bold ml-2">
+                      {isFetchingLocation ? 'Fetching...' : latitude && longitude ? '📍 Location Attached!' : 'Use Live Location'}
+                    </Text>
+                  </TouchableOpacity>
 
                   <Text className="text-lg font-extrabold text-gray-900 mt-2 mb-1">Pay on Delivery</Text>
                   <Text className="text-xs font-medium text-gray-500 mb-4">You will pay the delivery executive when your food arrives.</Text>

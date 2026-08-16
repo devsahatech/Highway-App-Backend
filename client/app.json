@@ -34,6 +34,12 @@
           "icon": "./assets/notification-icon.png",
           "color": "#D97706"
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Highway to use your location to deliver food accurately."
+        }
       ]
     ],
     "extra": {
