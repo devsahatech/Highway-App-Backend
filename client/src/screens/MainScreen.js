@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import socket from '../services/socket';
 import { registerForPushNotificationsAsync } from '../services/pushNotifications';
 import * as Location from 'expo-location';
-import MapView, { Marker, UrlTile } from 'react-native-maps';
+import { WebView } from 'react-native-webview';
 
 const CATEGORIES = ['All', 'Biryani', 'Starters', 'Fast Food', 'Beverages & Refreshments'];
 
@@ -663,20 +663,47 @@ export default function MainScreen() {
             </TouchableOpacity>
           </View>
           <View className="flex-1 relative">
-            <MapView
-              className="flex-1"
-              style={{ width: '100%', height: '100%' }}
-              region={mapRegion}
-              onRegionChangeComplete={(region) => setMapRegion(region)}
-              showsUserLocation={true}
-              mapType="none" // Hides underlying Google/Apple base map
-            >
-              <UrlTile
-                urlTemplate="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
-                maximumZ={19}
-                flipY={false}
-              />
-            </MapView>
+            <WebView
+              style={{ flex: 1 }}
+              source={{ html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+                    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+                    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                    <style>
+                        body { padding: 0; margin: 0; }
+                        html, body, #map { height: 100%; width: 100vw; }
+                        .leaflet-control-attribution { display: none; }
+                    </style>
+                </head>
+                <body>
+                    <div id="map"></div>
+                    <script>
+                        var map = L.map('map', { zoomControl: false }).setView([${mapRegion.latitude}, ${mapRegion.longitude}], 15);
+                        L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 19 }).addTo(map);
+                        map.on('moveend', function() {
+                            var center = map.getCenter();
+                            window.ReactNativeWebView.postMessage(JSON.stringify({
+                                latitude: center.lat,
+                                longitude: center.lng,
+                                latitudeDelta: 0.01,
+                                longitudeDelta: 0.01
+                            }));
+                        });
+                    </script>
+                </body>
+                </html>
+              ` }}
+              onMessage={(event) => {
+                const data = JSON.parse(event.nativeEvent.data);
+                setMapRegion(data);
+              }}
+              javaScriptEnabled={true}
+              scrollEnabled={false}
+              bounces={false}
+            />
             {/* Center Fixed Marker Pin */}
             <View className="absolute top-1/2 left-1/2 -ml-6 -mt-12 pointer-events-none" style={{ marginLeft: -24, marginTop: -48 }}>
               <Ionicons name="location" size={48} color="#D97706" />
