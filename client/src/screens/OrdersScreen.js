@@ -111,6 +111,49 @@ export default function OrdersScreen() {
     return s.includes('preparing') || s.includes('out for delivery') || s.includes('received');
   };
 
+  const canCancelOrder = (order) => {
+    if (!order || order.status !== 'Received') return false;
+    const orderTime = new Date(order.created_at).getTime();
+    const now = Date.now();
+    return (now - orderTime) <= 5 * 60 * 1000;
+  };
+
+  const handleCancelOrder = (orderId) => {
+    Alert.alert(
+      "Cancel Order",
+      "Are you sure you want to cancel this order?",
+      [
+        { text: "No", style: "cancel" },
+        { 
+          text: "Yes, Cancel", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
+              const response = await fetch(`${apiUrl}/orders/${orderId}/cancel`, {
+                method: 'PATCH',
+              });
+              const data = await response.json();
+              if (data.success) {
+                Alert.alert("Success", "Your order has been cancelled.");
+                setOrders((prevOrders) => 
+                  prevOrders.map(o => o.id === orderId ? { ...o, status: "Cancelled" } : o)
+                );
+                setSelectedOrder((prev) => 
+                  prev && prev.id === orderId ? { ...prev, status: "Cancelled" } : prev
+                );
+              } else {
+                Alert.alert("Error", data.message || "Failed to cancel order.");
+              }
+            } catch (error) {
+              Alert.alert("Error", "Network error while cancelling order.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
   if (loading && !refreshing) {
     return (
       <View className="flex-1 bg-gray-50 justify-center items-center">
@@ -223,10 +266,20 @@ export default function OrdersScreen() {
                     </View>
                   ))}
 
-                  <View className="flex-row justify-between items-center mt-6 mb-2">
+                  <View className="flex-row justify-between items-center mt-6 mb-4">
                     <Text className="text-gray-500 text-lg font-bold">Total Paid</Text>
                     <Text className="text-2xl font-extrabold text-amber-600">₹{selectedOrder.total_amount}</Text>
                   </View>
+
+                  {canCancelOrder(selectedOrder) && (
+                    <TouchableOpacity 
+                      onPress={() => handleCancelOrder(selectedOrder.id)}
+                      className="bg-red-50 border border-red-200 py-4 rounded-xl mt-2 mb-6 flex-row justify-center items-center"
+                    >
+                      <Ionicons name="close-circle-outline" size={20} color="#DC2626" />
+                      <Text className="text-red-600 font-bold text-lg ml-2">Cancel Order</Text>
+                    </TouchableOpacity>
+                  )}
                 </ScrollView>
               </>
             )}

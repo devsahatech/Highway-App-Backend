@@ -93,11 +93,45 @@ const updateStatus = async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+const cancelOrder = async (req, res) => {
+  try {
+    const order = await orderService.getOrderById(req.params.id);
+    
+    if (order.status !== "Received") {
+      return res.status(400).json({ success: false, message: `Cannot cancel: Order is already ${order.status}` });
+    }
 
+    const orderTime = new Date(order.created_at).getTime();
+    const now = Date.now();
+    const timeDiffMinutes = (now - orderTime) / (1000 * 60);
+
+    if (timeDiffMinutes > 5) {
+      return res.status(400).json({ success: false, message: "Cannot cancel: Time limit (5 minutes) has expired" });
+    }
+
+    const updatedOrder = await orderService.updateOrderStatus(req.params.id, "Cancelled");
+
+    if (req.app.get("io")) {
+      req.app.get("io").to("customers").emit("order_status_updated", {
+        success: true,
+        order: updatedOrder,
+      });
+      req.app.get("io").to("admin").emit("order_status_updated", {
+        success: true,
+        order: updatedOrder,
+      });
+    }
+
+    res.status(200).json({ success: true, order: updatedOrder, message: "Order cancelled successfully" });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
 module.exports = {
   createOrder,
   getOrders,
   getOrdersBatch,
   getOrder,
   updateStatus,
+  cancelOrder,
 };
