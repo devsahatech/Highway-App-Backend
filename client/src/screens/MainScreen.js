@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import socket from '../services/socket';
 import { registerForPushNotificationsAsync } from '../services/pushNotifications';
 import * as Location from 'expo-location';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, UrlTile } from 'react-native-maps';
 
 const CATEGORIES = ['All', 'Biryani', 'Starters', 'Fast Food', 'Beverages & Refreshments'];
 
@@ -669,7 +669,14 @@ export default function MainScreen() {
               region={mapRegion}
               onRegionChangeComplete={(region) => setMapRegion(region)}
               showsUserLocation={true}
-            />
+              mapType="none" // Hides underlying Google/Apple base map
+            >
+              <UrlTile
+                urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                maximumZ={19}
+                flipY={false}
+              />
+            </MapView>
             {/* Center Fixed Marker Pin */}
             <View className="absolute top-1/2 left-1/2 -ml-6 -mt-12 pointer-events-none" style={{ marginLeft: -24, marginTop: -48 }}>
               <Ionicons name="location" size={48} color="#D97706" />
