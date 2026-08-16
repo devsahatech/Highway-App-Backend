@@ -135,7 +135,7 @@ export default function OrdersScreen() {
               });
               const data = await response.json();
               if (data.success) {
-                Alert.alert("Success", "Your order has been cancelled.");
+                Alert.alert("Order Cancelled", "Your order has been successfully cancelled.");
                 setOrders((prevOrders) => 
                   prevOrders.map(o => o.id === orderId ? { ...o, status: "Cancelled" } : o)
                 );
@@ -143,7 +143,19 @@ export default function OrdersScreen() {
                   prev && prev.id === orderId ? { ...prev, status: "Cancelled" } : prev
                 );
               } else {
-                Alert.alert("Error", data.message || "Failed to cancel order.");
+                if (data.message && data.message.includes("5 minutes")) {
+                  Alert.alert(
+                    "Cancellation Unavailable", 
+                    "Orders can only be cancelled within 5 minutes of placing them. The kitchen has already started preparing your food!"
+                  );
+                } else if (data.message && data.message.includes("already")) {
+                  Alert.alert(
+                    "Cancellation Unavailable", 
+                    "This order cannot be cancelled because the kitchen is already preparing it."
+                  );
+                } else {
+                  Alert.alert("Could not cancel", data.message || "Something went wrong while trying to cancel.");
+                }
               }
             } catch (error) {
               Alert.alert("Error", "Network error while cancelling order.");
