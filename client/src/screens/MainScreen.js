@@ -153,8 +153,9 @@ export default function MainScreen() {
 
     socket.on('order_status_updated', (data) => {
       if (data.success && data.order) {
+        const displayId = `HW-${data.order.id.split('-')[0].toUpperCase()}`;
         Vibration.vibrate([0, 500, 200, 500]);
-        Alert.alert("Order Update", `Your order status is now: ${data.order.status}`);
+        Alert.alert("Order Update", `Your order #${displayId} is now: ${data.order.status}`);
       }
     });
 

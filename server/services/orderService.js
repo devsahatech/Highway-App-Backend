@@ -1,5 +1,13 @@
 const supabase = require("../config/supabase");
 
+const addDisplayId = (order) => {
+  if (!order) return order;
+  return {
+    ...order,
+    display_id: `HW-${order.id.split('-')[0].toUpperCase()}`
+  };
+};
+
 const createOrder = async (orderData) => {
   const { name, "phone no": phone, address, items, expo_push_token } = orderData;
 
@@ -46,7 +54,7 @@ const createOrder = async (orderData) => {
     throw new Error(orderError.message);
   }
 
-  return order;
+  return addDisplayId(order);
 };
 
 const getAllOrders = async () => {
@@ -56,7 +64,7 @@ const getAllOrders = async () => {
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
-  return data;
+  return data.map(addDisplayId);
 };
 
 const getOrdersBatch = async (ids) => {
@@ -68,7 +76,7 @@ const getOrdersBatch = async (ids) => {
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
-  return data;
+  return data.map(addDisplayId);
 };
 
 const getOrderById = async (id) => {
@@ -79,7 +87,7 @@ const getOrderById = async (id) => {
     .single();
 
   if (error) throw new Error(error.message);
-  return data;
+  return addDisplayId(data);
 };
 
 const updateOrderStatus = async (id, status) => {
@@ -91,7 +99,7 @@ const updateOrderStatus = async (id, status) => {
     .single();
 
   if (error) throw new Error(error.message);
-  return data;
+  return addDisplayId(data);
 };
 
 module.exports = {
