@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, RefreshControl, Vibration, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -56,6 +56,10 @@ export default function OrdersScreen() {
   useEffect(() => {
     const handleStatusUpdate = (data) => {
       if (data.success && data.order) {
+        const displayId = `HW-${data.order.id.split('-')[0].toUpperCase()}`;
+        Vibration.vibrate([0, 500, 200, 500]);
+        Alert.alert("Order Update", `Your order #${displayId} is now: ${data.order.status}`);
+        
         setOrders((prevOrders) => 
           prevOrders.map(o => o.id === data.order.id ? { ...o, status: data.order.status } : o)
         );
