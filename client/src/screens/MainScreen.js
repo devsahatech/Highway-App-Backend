@@ -672,7 +672,7 @@ export default function MainScreen() {
               mapType="none" // Hides underlying Google/Apple base map
             >
               <UrlTile
-                urlTemplate="https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+                urlTemplate="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
                 maximumZ={19}
                 flipY={false}
               />
