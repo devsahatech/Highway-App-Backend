@@ -22,7 +22,12 @@
         "foregroundImage": "./assets/adaptive-icon.png"
       },
       "package": "com.devsaha.highway",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDummyKeyToPreventAppCrash123456789"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
