@@ -676,6 +676,14 @@ export default function MainScreen() {
                         body { padding: 0; margin: 0; }
                         html, body, #map { height: 100%; width: 100vw; }
                         .leaflet-control-attribution { display: none; }
+                        .user-location-dot {
+                            background-color: #3b82f6;
+                            width: 16px;
+                            height: 16px;
+                            border-radius: 50%;
+                            border: 3px solid white;
+                            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+                        }
                     </style>
                 </head>
                 <body>
@@ -683,6 +691,16 @@ export default function MainScreen() {
                     <script>
                         var map = L.map('map', { zoomControl: false }).setView([${mapRegion.latitude}, ${mapRegion.longitude}], 15);
                         L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 19 }).addTo(map);
+                        
+                        ${latitude && longitude ? `
+                        var userIcon = L.divIcon({
+                            className: 'user-location-dot',
+                            iconSize: [22, 22],
+                            iconAnchor: [11, 11]
+                        });
+                        L.marker([${latitude}, ${longitude}], {icon: userIcon}).addTo(map);
+                        ` : ''}
+
                         map.on('moveend', function() {
                             var center = map.getCenter();
                             window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -701,8 +719,6 @@ export default function MainScreen() {
                 setMapRegion(data);
               }}
               javaScriptEnabled={true}
-              scrollEnabled={false}
-              bounces={false}
             />
             {/* Center Fixed Marker Pin */}
             <View className="absolute top-1/2 left-1/2 -ml-6 -mt-12 pointer-events-none" style={{ marginLeft: -24, marginTop: -48 }}>
