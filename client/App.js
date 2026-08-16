@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, ActivityIndicator } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -43,6 +44,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
+      <StatusBar style="dark" backgroundColor="transparent" translucent={true} />
       <NavigationContainer>
         <Stack.Navigator 
           screenOptions={{

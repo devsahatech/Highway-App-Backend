@@ -54,19 +54,28 @@ export default function OrdersScreen() {
   );
 
   useEffect(() => {
-    const handleStatusUpdate = (data) => {
+    const handleStatusUpdate = async (data) => {
       if (data.success && data.order) {
-        const displayId = `HW-${data.order.id.split('-')[0].toUpperCase()}`;
-        Vibration.vibrate([0, 500, 200, 500]);
-        Alert.alert("Order Update", `Your order #${displayId} is now: ${data.order.status}`);
-        
-        setOrders((prevOrders) => 
-          prevOrders.map(o => o.id === data.order.id ? { ...o, status: data.order.status } : o)
-        );
-        // Also update selected order if it's currently open
-        setSelectedOrder((prev) => 
-          prev && prev.id === data.order.id ? { ...prev, status: data.order.status } : prev
-        );
+        try {
+          const storedIds = await AsyncStorage.getItem('@my_orders');
+          if (!storedIds) return;
+          const idsArray = JSON.parse(storedIds);
+          if (!idsArray.includes(data.order.id)) return; // not this user's order
+
+          const displayId = `HW-${data.order.id.split('-')[0].toUpperCase()}`;
+          Vibration.vibrate([0, 500, 200, 500]);
+          Alert.alert("Order Update", `Your order #${displayId} is now: ${data.order.status}`);
+          
+          setOrders((prevOrders) => 
+            prevOrders.map(o => o.id === data.order.id ? { ...o, status: data.order.status } : o)
+          );
+          // Also update selected order if it's currently open
+          setSelectedOrder((prev) => 
+            prev && prev.id === data.order.id ? { ...prev, status: data.order.status } : prev
+          );
+        } catch (error) {
+          console.error('Error processing order status update', error);
+        }
       }
     };
 

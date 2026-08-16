@@ -247,11 +247,21 @@ export default function MainScreen() {
       );
     });
 
-    socket.on('order_status_updated', (data) => {
+    socket.on('order_status_updated', async (data) => {
       if (data.success && data.order) {
-        const displayId = `HW-${data.order.id.split('-')[0].toUpperCase()}`;
-        Vibration.vibrate([0, 500, 200, 500]);
-        Alert.alert("Order Update", `Your order #${displayId} is now: ${data.order.status}`);
+        try {
+          const existingOrders = await AsyncStorage.getItem('@my_orders');
+          if (existingOrders) {
+            const ordersArray = JSON.parse(existingOrders);
+            if (ordersArray.includes(data.order.id)) {
+              const displayId = `HW-${data.order.id.split('-')[0].toUpperCase()}`;
+              Vibration.vibrate([0, 500, 200, 500]);
+              Alert.alert("Order Update", `Your order #${displayId} is now: ${data.order.status}`);
+            }
+          }
+        } catch (e) {
+          console.error("Error checking orders for socket event", e);
+        }
       }
     });
 
@@ -549,15 +559,52 @@ export default function MainScreen() {
                 </View>
 
                 {/* Add to Cart Button */}
-                <TouchableOpacity
-                  className={`w-full py-4 rounded-2xl items-center flex-row justify-center ${item.inStock ? 'bg-amber-600' : 'bg-gray-300'}`}
-                  onPress={() => addToCart(item)}
-                  disabled={!item.inStock}
-                >
-                  <Text className={`font-extrabold text-lg ${item.inStock ? 'text-white' : 'text-gray-500'}`}>
-                    {item.inStock ? 'Add to Cart' : 'Unavailable'}
-                  </Text>
-                </TouchableOpacity>
+                {(() => {
+                  const currentVariantIndex = selectedVariants[item.id] || 0;
+                  const cartKey = `${item.id}-${currentVariantIndex}`;
+                  const quantityInCart = cart[cartKey]?.quantity || 0;
+
+                  if (!item.inStock) {
+                    return (
+                      <View className="w-full py-4 rounded-2xl items-center flex-row justify-center bg-gray-300">
+                        <Text className="font-extrabold text-lg text-gray-500">Unavailable</Text>
+                      </View>
+                    );
+                  }
+
+                  if (quantityInCart > 0) {
+                    return (
+                      <View className="w-full flex-row items-center justify-between bg-amber-100 rounded-2xl overflow-hidden border border-amber-200">
+                        <TouchableOpacity
+                          onPress={() => removeFromCart(cartKey)}
+                          className="flex-1 py-3 items-center justify-center bg-amber-100"
+                        >
+                          <Ionicons name="remove" size={24} color="#D97706" />
+                        </TouchableOpacity>
+                        
+                        <View className="px-6 py-3 items-center justify-center bg-white min-w-[80px]">
+                          <Text className="font-extrabold text-xl text-amber-700">{quantityInCart}</Text>
+                        </View>
+                        
+                        <TouchableOpacity
+                          onPress={() => incrementCartItem(cartKey)}
+                          className="flex-1 py-3 items-center justify-center bg-amber-100"
+                        >
+                          <Ionicons name="add" size={24} color="#D97706" />
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  }
+
+                  return (
+                    <TouchableOpacity
+                      className="w-full py-4 rounded-2xl items-center flex-row justify-center bg-amber-600"
+                      onPress={() => addToCart(item)}
+                    >
+                      <Text className="font-extrabold text-lg text-white">Add to Cart</Text>
+                    </TouchableOpacity>
+                  );
+                })()}
               </View>
             </View>
           ))}
