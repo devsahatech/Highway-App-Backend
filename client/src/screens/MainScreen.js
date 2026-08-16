@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, ActivityIndicator, Alert, Image, Linking } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, ActivityIndicator, Alert, Image, Linking, Vibration } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -153,6 +153,7 @@ export default function MainScreen() {
 
     socket.on('order_status_updated', (data) => {
       if (data.success && data.order) {
+        Vibration.vibrate([0, 500, 200, 500]);
         Alert.alert("Order Update", `Your order status is now: ${data.order.status}`);
       }
     });
