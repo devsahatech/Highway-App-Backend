@@ -12,6 +12,13 @@ export default function LoginScreen({ navigation, setIsLoggedIn }) {
       Alert.alert('Error', 'Please enter email and password');
       return;
     }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
+      return;
+    }
+    
     // Dummy login logic
     try {
       await AsyncStorage.setItem('isLoggedIn', 'true');
