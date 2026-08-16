@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import socket from '../services/socket';
 import { registerForPushNotificationsAsync } from '../services/pushNotifications';
 import * as Location from 'expo-location';
+import MapView, { Marker } from 'react-native-maps';
 
 const CATEGORIES = ['All', 'Biryani', 'Starters', 'Fast Food', 'Beverages & Refreshments'];
 
@@ -28,6 +29,15 @@ export default function MainScreen() {
   const [latitude, setLatitude] = useState(null);
   const [longitude, setLongitude] = useState(null);
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  
+  // Map Modal State
+  const [isMapVisible, setIsMapVisible] = useState(false);
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 28.6139,
+    longitude: 77.2090,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
+  });
 
   // Selected variants mapping (productId -> variant index)
   const [selectedVariants, setSelectedVariants] = useState({});
@@ -223,7 +233,7 @@ export default function MainScreen() {
     });
   };
 
-  const fetchLocation = async () => {
+  const openLocationPicker = async () => {
     setIsFetchingLocation(true);
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -234,14 +244,24 @@ export default function MainScreen() {
       }
 
       let location = await Location.getCurrentPositionAsync({});
-      setLatitude(location.coords.latitude);
-      setLongitude(location.coords.longitude);
-      Alert.alert('Location Added', 'Your live location has been added to the order!');
+      setMapRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+      setIsMapVisible(true);
     } catch (error) {
       Alert.alert('Error', 'Could not fetch location. Please ensure GPS is enabled.');
     } finally {
       setIsFetchingLocation(false);
     }
+  };
+
+  const confirmMapLocation = () => {
+    setLatitude(mapRegion.latitude);
+    setLongitude(mapRegion.longitude);
+    setIsMapVisible(false);
   };
 
   const placeOrder = async () => {
@@ -552,16 +572,29 @@ export default function MainScreen() {
                     onChangeText={setTableAddress}
                   />
 
-                  <TouchableOpacity
-                    onPress={fetchLocation}
-                    disabled={isFetchingLocation}
-                    className="flex-row items-center justify-center bg-blue-50 border border-blue-200 rounded-xl py-3 mb-4"
-                  >
-                    <Ionicons name="location" size={20} color="#3B82F6" />
-                    <Text className="text-blue-600 font-bold ml-2">
-                      {isFetchingLocation ? 'Fetching...' : latitude && longitude ? '📍 Location Attached!' : 'Use Live Location'}
-                    </Text>
-                  </TouchableOpacity>
+                  {latitude && longitude ? (
+                    <TouchableOpacity
+                      onPress={() => setIsMapVisible(true)}
+                      className="flex-row items-center justify-between bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-4"
+                    >
+                      <View className="flex-row items-center">
+                        <Ionicons name="location" size={20} color="#059669" />
+                        <Text className="text-green-700 font-bold ml-2">Location Pinned</Text>
+                      </View>
+                      <Text className="text-green-600 font-medium text-xs">Tap to change</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      onPress={openLocationPicker}
+                      disabled={isFetchingLocation}
+                      className="flex-row items-center justify-center bg-blue-50 border border-blue-200 rounded-xl py-3 mb-4"
+                    >
+                      <Ionicons name="map-outline" size={20} color="#3B82F6" />
+                      <Text className="text-blue-600 font-bold ml-2">
+                        {isFetchingLocation ? 'Fetching...' : 'Set Location on Map'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
 
                   <Text className="text-lg font-extrabold text-gray-900 mt-2 mb-1">Pay on Delivery</Text>
                   <Text className="text-xs font-medium text-gray-500 mb-4">You will pay the delivery executive when your food arrives.</Text>
@@ -611,6 +644,44 @@ export default function MainScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Map Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isMapVisible}
+        onRequestClose={() => setIsMapVisible(false)}
+      >
+        <View className="flex-1 bg-white">
+          <View className="flex-row items-center justify-between p-5 pt-12 border-b border-gray-200">
+            <Text className="text-xl font-extrabold text-gray-800">Set Delivery Location</Text>
+            <TouchableOpacity onPress={() => setIsMapVisible(false)} className="p-2 bg-gray-100 rounded-full">
+              <Ionicons name="close" size={24} color="#4B5563" />
+            </TouchableOpacity>
+          </View>
+          <View className="flex-1 relative">
+            <MapView
+              className="flex-1"
+              region={mapRegion}
+              onRegionChangeComplete={(region) => setMapRegion(region)}
+              showsUserLocation={true}
+            />
+            {/* Center Fixed Marker Pin */}
+            <View className="absolute top-1/2 left-1/2 -ml-6 -mt-12 pointer-events-none" style={{ marginLeft: -24, marginTop: -48 }}>
+              <Ionicons name="location" size={48} color="#D97706" />
+            </View>
+          </View>
+          <View className="p-6 bg-white border-t border-gray-200 shadow-xl pb-10">
+            <Text className="text-gray-600 mb-4 font-medium text-center">Drag the map to position the pin exactly on your delivery location.</Text>
+            <TouchableOpacity
+              className="bg-amber-600 py-4 rounded-xl items-center shadow-md shadow-amber-200"
+              onPress={confirmMapLocation}
+            >
+              <Text className="text-white font-extrabold text-xl">Confirm Location</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
