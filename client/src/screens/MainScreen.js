@@ -665,6 +665,7 @@ export default function MainScreen() {
           <View className="flex-1 relative">
             <MapView
               className="flex-1"
+              style={{ width: '100%', height: '100%' }}
               region={mapRegion}
               onRegionChangeComplete={(region) => setMapRegion(region)}
               showsUserLocation={true}
