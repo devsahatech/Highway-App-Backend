@@ -37,6 +37,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "./withSplitApk.js",
       [
         "expo-notifications",
         {
