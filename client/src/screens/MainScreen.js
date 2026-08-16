@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, ActivityIndicator, Alert, Image, Linking, Vibration } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +28,7 @@ export default function MainScreen() {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [latitude, setLatitude] = useState(null);
   const [longitude, setLongitude] = useState(null);
+  const [userLocation, setUserLocation] = useState(null); // Real GPS location
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   
   // Map Modal State
@@ -41,6 +42,71 @@ export default function MainScreen() {
 
   // Selected variants mapping (productId -> variant index)
   const [selectedVariants, setSelectedVariants] = useState({});
+
+  const webViewRef = useRef(null);
+
+  const recenterMap = () => {
+    if (userLocation && webViewRef.current) {
+      webViewRef.current.injectJavaScript(`
+        if (typeof map !== 'undefined') {
+          map.setView([${userLocation.lat}, ${userLocation.lng}], 15);
+        }
+        true;
+      `);
+    }
+  };
+
+  const htmlSource = useMemo(() => ({
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+          <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+          <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+          <style>
+              body { padding: 0; margin: 0; }
+              html, body, #map { height: 100%; width: 100vw; }
+              .leaflet-control-attribution { display: none; }
+              .user-location-dot {
+                  background-color: #3b82f6;
+                  width: 16px;
+                  height: 16px;
+                  border-radius: 50%;
+                  border: 3px solid white;
+                  box-shadow: 0 0 5px rgba(0,0,0,0.5);
+              }
+          </style>
+      </head>
+      <body>
+          <div id="map"></div>
+          <script>
+              var map = L.map('map', { zoomControl: false }).setView([${mapRegion.latitude}, ${mapRegion.longitude}], 15);
+              L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 19 }).addTo(map);
+              
+              ${userLocation ? `
+              var userIcon = L.divIcon({
+                  className: 'user-location-dot',
+                  iconSize: [22, 22],
+                  iconAnchor: [11, 11]
+              });
+              L.marker([${userLocation.lat}, ${userLocation.lng}], {icon: userIcon}).addTo(map);
+              ` : ''}
+
+              map.on('moveend', function() {
+                  var center = map.getCenter();
+                  window.ReactNativeWebView.postMessage(JSON.stringify({
+                      latitude: center.lat,
+                      longitude: center.lng,
+                      latitudeDelta: 0.01,
+                      longitudeDelta: 0.01
+                  }));
+              });
+          </script>
+      </body>
+      </html>
+    `
+  }), [isMapVisible]); // Rebuild HTML only when the map modal opens/closes
 
   useEffect(() => {
     const loadPrefillData = async () => {
@@ -244,6 +310,9 @@ export default function MainScreen() {
       }
 
       let location = await Location.getCurrentPositionAsync({});
+      
+      setUserLocation({ lat: location.coords.latitude, lng: location.coords.longitude });
+      
       setMapRegion({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
@@ -664,59 +733,14 @@ export default function MainScreen() {
           </View>
           <View className="flex-1 relative">
             <WebView
+              ref={webViewRef}
               style={{ flex: 1 }}
-              source={{ html: `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-                    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-                    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-                    <style>
-                        body { padding: 0; margin: 0; }
-                        html, body, #map { height: 100%; width: 100vw; }
-                        .leaflet-control-attribution { display: none; }
-                        .user-location-dot {
-                            background-color: #3b82f6;
-                            width: 16px;
-                            height: 16px;
-                            border-radius: 50%;
-                            border: 3px solid white;
-                            box-shadow: 0 0 5px rgba(0,0,0,0.5);
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div id="map"></div>
-                    <script>
-                        var map = L.map('map', { zoomControl: false }).setView([${mapRegion.latitude}, ${mapRegion.longitude}], 15);
-                        L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 19 }).addTo(map);
-                        
-                        ${latitude && longitude ? `
-                        var userIcon = L.divIcon({
-                            className: 'user-location-dot',
-                            iconSize: [22, 22],
-                            iconAnchor: [11, 11]
-                        });
-                        L.marker([${latitude}, ${longitude}], {icon: userIcon}).addTo(map);
-                        ` : ''}
-
-                        map.on('moveend', function() {
-                            var center = map.getCenter();
-                            window.ReactNativeWebView.postMessage(JSON.stringify({
-                                latitude: center.lat,
-                                longitude: center.lng,
-                                latitudeDelta: 0.01,
-                                longitudeDelta: 0.01
-                            }));
-                        });
-                    </script>
-                </body>
-                </html>
-              ` }}
+              source={htmlSource}
               onMessage={(event) => {
-                const data = JSON.parse(event.nativeEvent.data);
-                setMapRegion(data);
+                try {
+                  const data = JSON.parse(event.nativeEvent.data);
+                  setMapRegion(data);
+                } catch(e) {}
               }}
               javaScriptEnabled={true}
             />
@@ -724,6 +748,15 @@ export default function MainScreen() {
             <View className="absolute top-1/2 left-1/2 -ml-6 -mt-12 pointer-events-none" style={{ marginLeft: -24, marginTop: -48 }}>
               <Ionicons name="location" size={48} color="#D97706" />
             </View>
+            
+            {/* Recenter Button */}
+            <TouchableOpacity 
+              className="absolute top-4 right-4 bg-white p-3 rounded-full shadow-lg"
+              style={{ elevation: 5, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 3 }}
+              onPress={recenterMap}
+            >
+              <Ionicons name="locate" size={24} color="#3b82f6" />
+            </TouchableOpacity>
           </View>
           <View className="p-6 bg-white border-t border-gray-200 shadow-xl pb-10">
             <Text className="text-gray-600 mb-4 font-medium text-center">Drag the map to position the pin exactly on your delivery location.</Text>
